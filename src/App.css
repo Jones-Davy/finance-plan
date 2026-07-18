@@ -418,6 +418,21 @@
   background: var(--accent-soft);
   color: var(--text);
   font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shared-banner__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.shared-banner__meta {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .shared-banner--sync {
@@ -1283,12 +1298,57 @@
 
 @media (max-width: 768px) {
   .app {
-    padding: 16px 14px 32px;
-    padding-bottom: calc(32px + env(safe-area-inset-bottom));
+    padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+    overflow-x: clip;
+  }
+
+  .workbook {
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .workbook__content {
+    padding: 14px;
+  }
+
+  .month-sheets {
+    padding: 6px 8px 0;
+    gap: 4px;
+  }
+
+  .month-sheets__tabs {
+    flex: 1 1 auto;
+    max-width: calc(100% - 46px);
+  }
+
+  .month-sheets__tab {
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 0.875rem;
+  }
+
+  .month-sheets__tab--add {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .month-sheets__popover {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+  }
+
+  .shared-banner {
+    padding: 10px 12px;
+    margin-bottom: 12px;
   }
 
   .header {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
   }
 
   .header__content {
@@ -1366,6 +1426,60 @@
     gap: 10px;
   }
 
+  .stat-card__value,
+  .compare-table__value,
+  .transaction-row__amount,
+  .weekly-card__amounts strong {
+    overflow-wrap: anywhere;
+  }
+
+  .ru-month-field__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .ru-month-field__option {
+    min-height: 38px;
+    padding: 6px 4px;
+    font-size: 0.75rem;
+  }
+
+  .ru-calendar__day {
+    min-height: 32px;
+    font-size: 0.8125rem;
+  }
+
+  .transaction-form__submit {
+    min-height: 44px;
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .panel__header--wrap {
+    align-items: stretch;
+  }
+
+  .panel__header--wrap .badge {
+    align-self: flex-start;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .rule-panel .panel__header {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .rule-panel .panel__header > div {
+    flex: 1 1 auto;
+  }
+
+  .rule-panel .panel__header .btn {
+    width: auto;
+    min-width: 88px;
+    flex-shrink: 0;
+  }
+
   .stat-card {
     padding: 14px;
   }
@@ -1374,9 +1488,23 @@
     font-size: 1.125rem;
   }
 
+  .panel {
+    padding: 14px;
+  }
+
   .panel__header {
     margin-bottom: 14px;
     flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .panel__header > div {
+    flex: 1 1 100%;
+  }
+
+  .panel__header .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .panel__header h2 {
@@ -1387,46 +1515,63 @@
     font-size: 0.8125rem;
   }
 
-  .panel__header .btn {
-    min-height: 40px;
-    flex-shrink: 0;
-  }
-
   .expense-list {
     gap: 10px;
   }
 
   .expense-row {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 38px 12px 12px;
   }
 
-  .expense-row__name-field,
-  .expense-row__category-field,
-  .expense-row__amount-field {
-    width: 100%;
+  .expense-row__name-field {
+    grid-column: 1 / -1;
   }
 
   .expense-row__essential {
-    margin-top: 2px;
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+
+  .expense-row__delete {
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
   }
 
   .field input,
   .field select,
   .expense-row input:not([type='checkbox']),
-  .expense-row select {
+  .expense-row select,
+  .income-input input {
     min-height: 44px;
+    font-size: 16px;
   }
 
-  .transaction-form__submit {
-    min-height: 44px;
+  .charts {
+    gap: 14px;
+  }
+
+  .chart-panel {
     width: 100%;
-    justify-self: stretch;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .field input,
-  .field select {
-    min-height: 44px;
+  .chart-panel .recharts-responsive-container {
+    min-width: 260px;
+  }
+
+  .layout {
+    gap: 14px;
+  }
+
+  .layout__main,
+  .layout__primary,
+  .layout__side {
+    gap: 14px;
   }
 
   .transaction-row {
@@ -1548,13 +1693,69 @@
   }
 }
 
-@media (max-width: 480px) {
-  .summary__grid {
-    grid-template-columns: 1fr;
+@media (max-width: 420px) {
+  .app {
+    padding: calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));
+  }
+
+  .workbook__content {
+    padding: 10px;
+  }
+
+  .header h1 {
+    font-size: clamp(1.375rem, 7vw, 1.5rem);
+    letter-spacing: -0.025em;
   }
 
   .header__buttons {
     grid-template-columns: 1fr;
+  }
+
+  .summary__grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .summary__income {
+    padding: 12px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-card__value {
+    font-size: 1.0625rem;
+  }
+
+  .stat-card__hint {
+    font-size: 0.6875rem;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  .panel__header .btn {
+    width: 100%;
+  }
+
+  .rule-panel .panel__header {
+    flex-direction: column;
+  }
+
+  .rule-panel .panel__header .btn {
+    width: 100%;
+  }
+
+  .expense-row {
+    grid-template-columns: 1fr;
+    padding: 36px 10px 10px;
+  }
+
+  .expense-row__essential {
+    padding: 10px;
+    font-size: 0.8125rem;
   }
 
   .transaction-form {
@@ -1566,9 +1767,243 @@
       'category'
       'bucket'
       'submit';
+    gap: 8px;
   }
 
   .compare-table__row {
     grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .compare-table__value {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .compare-table__value::before {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .weekly-card__amounts {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .chart-panel .recharts-responsive-container {
+    min-width: 0;
+  }
+
+  .month-sheets__tab {
+    padding: 8px 11px;
+    font-size: 0.8125rem;
+  }
+
+  .share__popover,
+  .month-sheets__popover {
+    left: 10px;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 340px) {
+  .app {
+    padding-inline: calc(8px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-right));
+  }
+
+  .workbook__content {
+    padding: 8px;
+  }
+
+  .shared-banner {
+    padding: 8px 10px;
+  }
+
+  .shared-banner__title {
+    font-size: 0.8125rem;
+  }
+
+  .shared-banner__meta {
+    font-size: 0.75rem;
+  }
+
+  .header h1 {
+    font-size: 1.3125rem;
+  }
+
+  .header__eyebrow {
+    font-size: 0.75rem;
+    margin-bottom: 6px;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 0.875rem;
+  }
+
+  .summary__income {
+    padding: 10px;
+  }
+
+  .income-input input {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 16px;
+  }
+
+  .stat-card {
+    padding: 10px;
+    gap: 4px;
+  }
+
+  .stat-card__label {
+    font-size: 0.75rem;
+  }
+
+  .stat-card__value {
+    font-size: 1rem;
+  }
+
+  .panel {
+    padding: 10px;
+  }
+
+  .panel__header {
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  .panel__header h2 {
+    font-size: 0.9375rem;
+  }
+
+  .panel__subtitle {
+    font-size: 0.75rem;
+  }
+
+  .expense-group__title {
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+  }
+
+  .expense-row {
+    padding: 34px 8px 8px;
+    gap: 8px;
+  }
+
+  .expense-field__label,
+  .field__label {
+    font-size: 0.625rem;
+  }
+
+  .expense-row__delete {
+    width: 32px;
+    height: 32px;
+    top: 6px;
+    right: 6px;
+  }
+
+  .month-sheets {
+    padding: 4px 6px 0;
+  }
+
+  .month-sheets__tabs {
+    max-width: calc(100% - 42px);
+  }
+
+  .month-sheets__tab {
+    min-height: 36px;
+    padding: 6px 9px;
+    font-size: 0.75rem;
+  }
+
+  .month-sheets__tab--add {
+    min-width: 36px;
+    min-height: 36px;
+    padding-inline: 8px;
+  }
+
+  .ru-month-field__grid {
+    gap: 4px;
+  }
+
+  .ru-month-field__option {
+    min-height: 34px;
+    font-size: 0.6875rem;
+  }
+
+  .ru-calendar__weekdays span {
+    font-size: 0.625rem;
+  }
+
+  .ru-calendar__day {
+    min-height: 28px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+  }
+
+  .transaction-row {
+    padding: 10px;
+    gap: 4px 8px;
+  }
+
+  .transaction-row__amount {
+    font-size: 0.9375rem;
+  }
+
+  .goal-card {
+    padding: 10px;
+  }
+
+  .goal-card__fields label span {
+    font-size: 0.6875rem;
+  }
+
+  .rule-card {
+    padding: 10px;
+  }
+
+  .rule-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    font-size: 0.8125rem;
+  }
+
+  .rule-card__target {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  .rule-card__footer {
+    font-size: 0.75rem;
+  }
+
+  .legend li {
+    grid-template-columns: 8px 1fr auto;
+    gap: 6px;
+    font-size: 0.75rem;
+  }
+
+  .badge {
+    font-size: 0.6875rem;
+    padding: 3px 8px;
+  }
+
+  .compare-table__category {
+    font-size: 0.875rem;
+    padding-bottom: 6px;
+  }
+
+  .layout,
+  .layout__main,
+  .layout__primary,
+  .layout__side {
+    gap: 10px;
   }
 }

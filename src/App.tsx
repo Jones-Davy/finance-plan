@@ -61,8 +61,10 @@ function App() {
     <div className="app">
       {isRoomMode && cloudSyncEnabled && (
         <div className="shared-banner shared-banner--sync">
-          Общий бюджет с партнёром · комната {roomId?.slice(0, 8)}…
-          {syncLabel ? ` · ${syncLabel}` : ''}
+          <strong className="shared-banner__title">Общий бюджет</strong>
+          <span className="shared-banner__meta">
+            комната {roomId?.slice(0, 8)}…{syncLabel ? ` · ${syncLabel}` : ''}
+          </span>
         </div>
       )}
       {isLegacySharedPlan && !isRoomMode && (

@@ -29,18 +29,25 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: clip;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(circle at top left, rgba(99, 102, 241, 0.08), transparent 40%),
     var(--bg);
   -webkit-tap-highlight-color: transparent;
+  overflow-x: clip;
 }
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 h1,
