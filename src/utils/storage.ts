@@ -1,6 +1,7 @@
 import type { BudgetState } from '../types'
 import { defaultGoalDeadline, getMonthKey, getTodayISO, parseISODate } from './dates'
 import { createDefaultExpenses, migrateExpensesByMonth } from './expenses'
+import { migrateIncomeByMonth } from './income'
 
 const STORAGE_KEY = 'finance-budget-v1'
 const VIEW_MONTH_KEY = 'finance-budget-view-month'
@@ -11,11 +12,10 @@ const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/
 export function createDefaultState(): BudgetState {
   const monthKey = getMonthKey()
   return {
-    monthlyIncome: 0,
+    incomeByMonth: { [monthKey]: 0 },
     expensesByMonth: { [monthKey]: createDefaultExpenses() },
     goals: [],
     transactions: [],
-    viewMonthKey: monthKey,
   }
 }
 
@@ -25,17 +25,14 @@ export function loadBudget(): BudgetState {
     if (!raw) return createDefaultState()
     const parsed = JSON.parse(raw) as BudgetState & { expenses?: BudgetState['expensesByMonth'][string] }
     return {
-      monthlyIncome: parsed.monthlyIncome ?? 0,
+      incomeByMonth: migrateIncomeByMonth(parsed, getMonthKey()),
       expensesByMonth: migrateExpensesByMonth(parsed, getMonthKey()),
       goals: (parsed.goals ?? []).map((goal) => ({
         ...goal,
         deadline: goal.deadline || defaultGoalDeadline(),
       })),
       transactions: parsed.transactions ?? [],
-      viewMonthKey:
-        parsed.viewMonthKey && MONTH_KEY_PATTERN.test(parsed.viewMonthKey)
-          ? parsed.viewMonthKey
-          : getMonthKey(),
+      roomName: parsed.roomName,
     }
   } catch {
     return createDefaultState()

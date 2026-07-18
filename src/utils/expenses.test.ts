@@ -30,13 +30,14 @@ describe('expenses utils', () => {
     expect(keys).toEqual([...keys].sort())
   })
 
-  it('ensureMonthExpenses clones plan from nearest month', () => {
+  it('ensureMonthExpenses creates fresh default plan for new month', () => {
     const base = {
       '2026-07': [createExpense({ amount: 1000 })],
     }
 
     const next = ensureMonthExpenses(base, '2026-08')
-    expect(getExpensesForMonth(next, '2026-08')[0].amount).toBe(1000)
+    expect(getExpensesForMonth(next, '2026-08')).toHaveLength(8)
+    expect(getExpensesForMonth(next, '2026-08')[0].amount).toBe(0)
     expect(getExpensesForMonth(next, '2026-08')[0].id).not.toBe(base['2026-07'][0].id)
   })
 

@@ -7,7 +7,7 @@ import { createBudgetState } from '../test/fixtures'
 describe('PlanVsActualPanel', () => {
   it('shows placeholder when there is no data', () => {
     const summary = buildBudgetSummary(
-      createBudgetState({ monthlyIncome: 0, expensesByMonth: {}, transactions: [] }),
+      createBudgetState({ incomeByMonth: { '2026-07': 0 }, expensesByMonth: {}, transactions: [] }),
       '2026-07',
     )
 

@@ -1,10 +1,10 @@
 import { ExpenseChart } from './components/ExpenseChart'
 import { ActualSpendingPanel } from './components/ActualSpendingPanel'
 import { ExpenseList } from './components/ExpenseList'
-import { GoalsPanel } from './components/GoalsPanel'
+// import { GoalsPanel } from './components/GoalsPanel'
 import { MonthSheetsBar } from './components/MonthSheetsBar'
 import { PlanVsActualPanel } from './components/PlanVsActualPanel'
-import { Rule503020Panel } from './components/Rule503020Panel'
+// import { Rule503020Panel } from './components/Rule503020Panel'
 import { SummaryCards } from './components/SummaryCards'
 import { WeeklyBreakdown } from './components/WeeklyBreakdown'
 import { SharePlanButton } from './components/SharePlanButton'
@@ -35,33 +35,38 @@ function App() {
     setMonthKey,
     monthKeys,
     monthExpenses,
+    monthIncome,
     monthTransactions,
     roomId,
+    roomName,
     cloudAvailable,
     cloudSyncEnabled,
     syncStatus,
     createSharedRoom,
+    createNewRoom,
+    updateRoomName,
     setIncome,
     updateExpense,
     addExpense,
     removeExpense,
     addTransaction,
     removeTransaction,
-    addGoal,
-    updateGoal,
-    removeGoal,
+    // addGoal,
+    // updateGoal,
+    // removeGoal,
     resetBudget,
     isLegacySharedPlan,
     isRoomMode,
   } = useBudget()
 
   const syncLabel = syncStatusLabel(syncStatus)
+  const displayRoomName = roomName.trim() || 'Общий бюджет'
 
   return (
     <div className="app">
       {isRoomMode && cloudSyncEnabled && (
         <div className="shared-banner shared-banner--sync">
-          <strong className="shared-banner__title">Общий бюджет</strong>
+          <strong className="shared-banner__title">{displayRoomName}</strong>
           <span className="shared-banner__meta">
             комната {roomId?.slice(0, 8)}…{syncLabel ? ` · ${syncLabel}` : ''}
           </span>
@@ -70,14 +75,14 @@ function App() {
       {isLegacySharedPlan && !isRoomMode && (
         <div className="shared-banner">
           Открыт план из старой ссылки. Данные только у вас — для синхронизации создайте общую
-          комнату через «Поделиться».
+          комнату через «Комната».
         </div>
       )}
       <header className="header">
         <div className="header__content">
           <div>
             <p className="header__eyebrow">Личные финансы</p>
-            <h1>Месячный бюджет</h1>
+            <h1>{isRoomMode && cloudSyncEnabled ? displayRoomName : 'Месячный бюджет'}</h1>
             <p className="header__desc header__desc--desktop">
               Планируйте траты, фиксируйте факт и проверяйте баланс по правилу 50/30/20
             </p>
@@ -87,8 +92,11 @@ function App() {
               <SharePlanButton
                 state={state}
                 roomId={roomId}
+                roomName={roomName}
                 cloudAvailable={cloudAvailable}
+                onRoomNameChange={updateRoomName}
                 onCreateRoom={createSharedRoom}
+                onCreateNewRoom={createNewRoom}
               />
               <button type="button" className="btn btn--secondary" onClick={resetBudget}>
                 Сбросить
@@ -103,7 +111,7 @@ function App() {
 
         <main className="layout workbook__content">
           <SummaryCards
-            income={state.monthlyIncome}
+            income={monthIncome}
             summary={summary}
             onIncomeChange={setIncome}
           />
@@ -127,16 +135,20 @@ function App() {
             </div>
 
             <aside className="layout__side">
-              <Rule503020Panel income={state.monthlyIncome} summary={summary} />
-              <ExpenseChart summary={summary} income={state.monthlyIncome} />
-              <WeeklyBreakdown summary={summary} />
-              <GoalsPanel
+              {/* <Rule503020Panel income={monthIncome} summary={summary} /> */}
+              <ExpenseChart summary={summary} income={monthIncome} />
+              <WeeklyBreakdown
+                summary={summary}
+                expenses={monthExpenses}
+                transactions={monthTransactions}
+              />
+              {/* <GoalsPanel
                 goals={state.goals}
                 goalsMonthlyNeed={summary.goalsMonthlyNeed}
                 onAdd={addGoal}
                 onUpdate={updateGoal}
                 onRemove={removeGoal}
-              />
+              /> */}
             </aside>
           </div>
         </main>

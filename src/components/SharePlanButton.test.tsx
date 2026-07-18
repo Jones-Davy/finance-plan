@@ -7,8 +7,11 @@ import { createBudgetState } from '../test/fixtures'
 const defaultProps = {
   state: createBudgetState(),
   roomId: null,
+  roomName: '',
   cloudAvailable: false,
+  onRoomNameChange: vi.fn(),
   onCreateRoom: vi.fn().mockResolvedValue('00000000-0000-4000-8000-000000000001'),
+  onCreateNewRoom: vi.fn().mockResolvedValue('00000000-0000-4000-8000-000000000002'),
 }
 
 describe('SharePlanButton', () => {
@@ -19,7 +22,7 @@ describe('SharePlanButton', () => {
 
     render(<SharePlanButton {...defaultProps} />)
 
-    await user.click(screen.getByRole('button', { name: 'Поделиться' }))
+    await user.click(screen.getByRole('button', { name: 'Комната' }))
     expect(screen.getByText(/Облако не настроено/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Копировать ссылку' }))
@@ -40,27 +43,27 @@ describe('SharePlanButton', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Поделиться' }))
+    await user.click(screen.getByRole('button', { name: 'Комната' }))
+    await user.type(screen.getByPlaceholderText('Например, Семейный бюджет'), 'Семья')
     await user.click(screen.getByRole('button', { name: 'Создать общую комнату' }))
 
     expect(onCreateRoom).toHaveBeenCalled()
     expect(writeText).toHaveBeenCalled()
   })
 
-  it('closes popover when clicking outside', async () => {
+  it('offers new room button when already in a room', async () => {
     const user = userEvent.setup()
 
     render(
-      <>
-        <SharePlanButton {...defaultProps} />
-        <button type="button">Снаружи</button>
-      </>,
+      <SharePlanButton
+        {...defaultProps}
+        cloudAvailable
+        roomId="00000000-0000-4000-8000-000000000001"
+        roomName="Семья"
+      />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Поделиться' }))
-    expect(screen.getByText(/Облако не настроено/i)).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Снаружи' }))
-    expect(screen.queryByText(/Облако не настроено/i)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Комната' }))
+    expect(screen.getByRole('button', { name: 'Создать новую комнату' })).toBeInTheDocument()
   })
 })

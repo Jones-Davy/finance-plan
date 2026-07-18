@@ -16,6 +16,7 @@ import {
   sumExpenses,
   sumTransactions,
 } from './calculations'
+import { getIncomeForMonth } from './income'
 import { createBudgetState, createExpense, createGoal, createTransaction } from '../test/fixtures'
 
 describe('calculations: dates', () => {
@@ -125,7 +126,7 @@ describe('calculations: budget summary', () => {
   it('buildRule503020 splits income into 50/30/20 targets', () => {
     const state = createBudgetState()
     const rules = buildRule503020(
-      state.monthlyIncome,
+      getIncomeForMonth(state, '2026-07'),
       filterTransactionsByMonth(state.transactions, '2026-07'),
     )
 

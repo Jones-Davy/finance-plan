@@ -9,18 +9,34 @@ import { buildRoomUrl } from '../utils/roomUrl'
 interface Props {
   state: BudgetState
   roomId: string | null
+  roomName: string
   cloudAvailable: boolean
-  onCreateRoom: () => Promise<string>
+  onRoomNameChange: (name: string) => void
+  onCreateRoom: (name?: string) => Promise<string>
+  onCreateNewRoom: (name?: string) => Promise<string>
 }
 
-export function SharePlanButton({ state, roomId, cloudAvailable, onCreateRoom }: Props) {
+export function SharePlanButton({
+  state,
+  roomId,
+  roomName,
+  cloudAvailable,
+  onRoomNameChange,
+  onCreateRoom,
+  onCreateNewRoom,
+}: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [includeGoals, setIncludeGoals] = useState(true)
   const [includeTransactions, setIncludeTransactions] = useState(true)
+  const [draftRoomName, setDraftRoomName] = useState(roomName)
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    setDraftRoomName(roomName)
+  }, [roomName])
 
   const usesDefaultUrl =
     includeGoals === DEFAULT_URL_SHARE_OPTIONS.includeGoals &&
@@ -54,12 +70,32 @@ export function SharePlanButton({ state, roomId, cloudAvailable, onCreateRoom }:
     setError('')
     setBusy(true)
     try {
-      const id = await onCreateRoom()
+      onRoomNameChange(draftRoomName)
+      const id = await onCreateRoom(draftRoomName)
       await navigator.clipboard.writeText(buildRoomUrl(id))
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2500)
     } catch {
       setError('Не удалось создать общую комнату. Проверьте Supabase.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleCreateNewRoom = async () => {
+    setError('')
+    if (!confirm('Создать новую комнату? Текущая ссылка перестанет открывать этот бюджет.')) {
+      return
+    }
+
+    setBusy(true)
+    try {
+      const id = await onCreateNewRoom(draftRoomName)
+      await navigator.clipboard.writeText(buildRoomUrl(id))
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2500)
+    } catch {
+      setError('Не удалось создать новую комнату.')
     } finally {
       setBusy(false)
     }
@@ -81,24 +117,44 @@ export function SharePlanButton({ state, roomId, cloudAvailable, onCreateRoom }:
   return (
     <div className="share" ref={rootRef}>
       <button type="button" className="btn btn--secondary" onClick={() => setOpen((v) => !v)}>
-        Поделиться
+        Комната
       </button>
 
       {open && (
         <div className="share__popover card">
-          <h3>Поделиться бюджетом</h3>
+          <h3>Общая комната</h3>
 
           {cloudAvailable ? (
             <>
               <p className="share__text">
-                Общая комната в Supabase: вы и партнёр видите одни данные в реальном времени.
-                Ссылка короткая — в ней только ID комнаты.
+                Комната синхронизирует бюджет между устройствами. Активный месяц у каждого свой.
               </p>
 
+              <label className="field share__room-name">
+                <span className="field__label">Название комнаты</span>
+                <input
+                  type="text"
+                  value={draftRoomName}
+                  placeholder="Например, Семейный бюджет"
+                  onChange={(e) => setDraftRoomName(e.target.value)}
+                  onBlur={() => onRoomNameChange(draftRoomName)}
+                />
+              </label>
+
               {roomId ? (
-                <button type="button" className="btn btn--primary btn--full" onClick={handleCopyRoom}>
-                  {copied ? 'Ссылка скопирована' : 'Копировать ссылку-приглашение'}
-                </button>
+                <>
+                  <button type="button" className="btn btn--primary btn--full" onClick={handleCopyRoom}>
+                    {copied ? 'Ссылка скопирована' : 'Копировать ссылку-приглашение'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--full"
+                    disabled={busy}
+                    onClick={handleCreateNewRoom}
+                  >
+                    {busy ? 'Создаём…' : 'Создать новую комнату'}
+                  </button>
+                </>
               ) : (
                 <button
                   type="button"
@@ -113,8 +169,7 @@ export function SharePlanButton({ state, roomId, cloudAvailable, onCreateRoom }:
           ) : (
             <>
               <p className="share__text">
-                Облако не настроено — работает старый режим: весь план в ссылке. Для синхронизации с
-                партнёром добавьте Supabase (см. DEPLOY.md).
+                Облако не настроено — работает старый режим: весь план в ссылке.
               </p>
 
               <label className="share__option">

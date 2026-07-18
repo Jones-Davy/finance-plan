@@ -9,6 +9,7 @@ import type {
 } from '../types'
 import { buildBudgetSummary } from '../utils/calculations'
 import { ensureMonthExpenses, getExpensesForMonth, collectMonthKeys } from '../utils/expenses'
+import { getIncomeForMonth } from '../utils/income'
 import {
   createDefaultState,
   loadBudget,
@@ -23,6 +24,7 @@ import {
   createRoom,
   loadRoomState,
   saveRoomState,
+  stripLocalOnlyFields,
   subscribeRoomState,
   type CloudSyncStatus,
 } from '../utils/roomSync'
@@ -30,20 +32,15 @@ import { readRoomIdFromUrl, setRoomInUrl } from '../utils/roomUrl'
 
 const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/
 
-function buildRoomPayload(state: BudgetState, monthKey: string): BudgetState {
-  return { ...state, viewMonthKey: monthKey }
-}
-
 function loadInitialState(monthKey: string): BudgetState {
   const roomId = readRoomIdFromUrl()
 
   if (roomId && canUseCloudSync()) {
     return {
-      monthlyIncome: 0,
+      incomeByMonth: {},
       expensesByMonth: ensureMonthExpenses({}, monthKey),
       goals: [],
       transactions: [],
-      viewMonthKey: monthKey,
     }
   }
 
@@ -54,21 +51,11 @@ function loadInitialState(monthKey: string): BudgetState {
   return {
     ...base,
     expensesByMonth: ensureMonthExpenses(base.expensesByMonth, monthKey),
-    viewMonthKey: base.viewMonthKey && MONTH_KEY_PATTERN.test(base.viewMonthKey) ? base.viewMonthKey : monthKey,
   }
 }
 
 export function useBudget() {
-  const [initialMonthKey] = useState(() => {
-    if (readRoomIdFromUrl() && canUseCloudSync()) {
-      return loadViewMonthKey()
-    }
-    const local = loadBudget()
-    if (local.viewMonthKey && MONTH_KEY_PATTERN.test(local.viewMonthKey)) {
-      return local.viewMonthKey
-    }
-    return loadViewMonthKey()
-  })
+  const [initialMonthKey] = useState(() => loadViewMonthKey())
   const [monthKey, setMonthKeyState] = useState(initialMonthKey)
   const [roomId, setRoomIdState] = useState<string | null>(() => readRoomIdFromUrl())
   const [state, setState] = useState(() => loadInitialState(initialMonthKey))
@@ -86,20 +73,10 @@ export function useBudget() {
 
   const applyRemoteState = useCallback((data: BudgetState, updatedAt: string) => {
     skipCloudSaveRef.current = true
-    const remoteMonth =
-      data.viewMonthKey && MONTH_KEY_PATTERN.test(data.viewMonthKey)
-        ? data.viewMonthKey
-        : monthKeyRef.current
-
-    if (remoteMonth !== monthKeyRef.current) {
-      setMonthKeyState(remoteMonth)
-      saveViewMonthKey(remoteMonth)
-    }
-
+    const localMonth = monthKeyRef.current
     setState({
       ...data,
-      viewMonthKey: remoteMonth,
-      expensesByMonth: ensureMonthExpenses(data.expensesByMonth, remoteMonth),
+      expensesByMonth: ensureMonthExpenses(data.expensesByMonth, localMonth),
     })
     lastPushedAtRef.current = updatedAt
     roomHydratedRef.current = true
@@ -110,7 +87,6 @@ export function useBudget() {
     if (!MONTH_KEY_PATTERN.test(nextMonthKey)) return
     setMonthKeyState(nextMonthKey)
     saveViewMonthKey(nextMonthKey)
-    setState((current) => ({ ...current, viewMonthKey: nextMonthKey }))
   }, [])
 
   useEffect(() => {
@@ -171,10 +147,7 @@ export function useBudget() {
     }
   }, [roomId, applyRemoteState])
 
-  const roomPayload = useMemo(
-    () => buildRoomPayload(state, monthKey),
-    [state, monthKey],
-  )
+  const roomPayload = useMemo(() => stripLocalOnlyFields(state), [state])
 
   useEffect(() => {
     if (!cloudSyncEnabled || !roomId || !roomHydratedRef.current) return
@@ -199,17 +172,46 @@ export function useBudget() {
     return () => window.clearTimeout(timer)
   }, [roomPayload, roomId, cloudSyncEnabled])
 
-  const createSharedRoom = useCallback(async () => {
-    const payload = buildRoomPayload(state, monthKeyRef.current)
+  const openRoom = useCallback(async (payload: BudgetState) => {
     const id = await createRoom(payload)
     skipCloudSaveRef.current = true
     roomHydratedRef.current = true
     setRoomIdState(id)
     setRoomInUrl(id)
+    setState(payload)
     lastPushedAtRef.current = await saveRoomState(id, payload)
     setSyncStatus('saved')
     return id
-  }, [state])
+  }, [])
+
+  const createSharedRoom = useCallback(
+    async (roomName?: string) => {
+      const payload: BudgetState = {
+        ...stripLocalOnlyFields(state),
+        roomName: roomName?.trim() || state.roomName,
+      }
+      return openRoom(payload)
+    },
+    [openRoom, state],
+  )
+
+  const createNewRoom = useCallback(
+    async (roomName?: string) => {
+      const month = monthKeyRef.current
+      const payload: BudgetState = {
+        ...createDefaultState(),
+        incomeByMonth: { [month]: 0 },
+        expensesByMonth: ensureMonthExpenses({}, month),
+        roomName: roomName?.trim() || 'Новый бюджет',
+      }
+      return openRoom(payload)
+    },
+    [openRoom],
+  )
+
+  const updateRoomName = useCallback((roomName: string) => {
+    setState((current) => ({ ...current, roomName: roomName.trim() }))
+  }, [])
 
   const monthExpenses = useMemo(
     () => getExpensesForMonth(state.expensesByMonth, monthKey),
@@ -221,6 +223,11 @@ export function useBudget() {
     [state.expensesByMonth, state.transactions, monthKey],
   )
 
+  const monthIncome = useMemo(
+    () => getIncomeForMonth(state, monthKey),
+    [state, monthKey],
+  )
+
   const summary = useMemo(() => buildBudgetSummary(state, monthKey), [state, monthKey])
 
   const monthTransactions = useMemo(
@@ -228,8 +235,14 @@ export function useBudget() {
     [state.transactions, monthKey],
   )
 
-  const setIncome = useCallback((monthlyIncome: number) => {
-    setState((s) => ({ ...s, monthlyIncome }))
+  const setIncome = useCallback((income: number) => {
+    setState((s) => {
+      const key = monthKeyRef.current
+      return {
+        ...s,
+        incomeByMonth: { ...(s.incomeByMonth ?? {}), [key]: income },
+      }
+    })
   }, [])
 
   const updateExpense = useCallback((id: string, patch: Partial<Expense>) => {
@@ -247,30 +260,32 @@ export function useBudget() {
     })
   }, [])
 
-  const addExpense = useCallback(
-    (category: ExpenseCategory = 'other', essential = true) => {
-      setState((s) => {
-        const key = monthKeyRef.current
-        return {
-          ...s,
-          expensesByMonth: {
-            ...s.expensesByMonth,
-            [key]: [
-              ...(s.expensesByMonth[key] ?? []),
-              {
-                id: uuidv4(),
-                name: '',
-                amount: 0,
-                category,
-                essential,
-              },
-            ],
-          },
-        }
-      })
-    },
-    [],
-  )
+  const addExpense = useCallback((category?: ExpenseCategory, essential?: boolean) => {
+    setState((s) => {
+      const key = monthKeyRef.current
+      const current = s.expensesByMonth[key] ?? []
+      const last = current[current.length - 1]
+      const nextCategory = category ?? last?.category ?? 'housing'
+      const nextEssential = essential ?? last?.essential ?? true
+
+      return {
+        ...s,
+        expensesByMonth: {
+          ...s.expensesByMonth,
+          [key]: [
+            ...current,
+            {
+              id: uuidv4(),
+              name: '',
+              amount: 0,
+              category: nextCategory,
+              essential: nextEssential,
+            },
+          ],
+        },
+      }
+    })
+  }, [])
 
   const removeExpense = useCallback((id: string) => {
     setState((s) => {
@@ -352,12 +367,16 @@ export function useBudget() {
     setMonthKey,
     monthKeys,
     monthExpenses,
+    monthIncome,
     monthTransactions,
     roomId,
+    roomName: state.roomName ?? '',
     cloudSyncEnabled,
     cloudAvailable: canUseCloudSync(),
     syncStatus,
     createSharedRoom,
+    createNewRoom,
+    updateRoomName,
     setIncome,
     updateExpense,
     addExpense,

@@ -36,7 +36,7 @@ export function createGoal(overrides: Partial<Goal> = {}): Goal {
 
 export function createBudgetState(overrides: Partial<BudgetState> = {}): BudgetState {
   return {
-    monthlyIncome: 100000,
+    incomeByMonth: { '2026-07': 100000 },
     expensesByMonth: {
       '2026-07': [
         createExpense(),
@@ -68,7 +68,6 @@ export function createBudgetState(overrides: Partial<BudgetState> = {}): BudgetS
         bucket: 'need',
       }),
     ],
-    viewMonthKey: '2026-07',
     ...overrides,
   }
 }

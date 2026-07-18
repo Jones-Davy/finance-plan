@@ -44,6 +44,6 @@ describe('ExpenseList', () => {
     )
 
     await user.click(screen.getByRole('button', { name: '+ Статья' }))
-    expect(onAdd).toHaveBeenCalledWith('other', true)
+    expect(onAdd).toHaveBeenCalledWith()
   })
 })

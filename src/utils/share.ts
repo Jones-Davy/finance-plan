@@ -1,6 +1,7 @@
 import type { BudgetState, Expense } from '../types'
 import { defaultGoalDeadline, getMonthKey } from './dates'
 import { migrateExpensesByMonth } from './expenses'
+import { getIncomeForMonth, migrateIncomeByMonth } from './income'
 
 const SHARE_VERSION = 1
 const HASH_PREFIX = '#p='
@@ -44,7 +45,7 @@ export function buildSharePayload(
 
   const payload: SharedPlanPayload = {
     v: SHARE_VERSION,
-    monthlyIncome: state.monthlyIncome,
+    monthlyIncome: getIncomeForMonth(state, getMonthKey()),
     expensesByMonth: state.expensesByMonth,
   }
 
@@ -128,7 +129,7 @@ export function sharedPlanToState(
   localTransactions: BudgetState['transactions'] = [],
 ): BudgetState {
   return {
-    monthlyIncome: payload.monthlyIncome,
+    incomeByMonth: migrateIncomeByMonth(payload, getMonthKey()),
     expensesByMonth: migrateExpensesByMonth(payload, getMonthKey()),
     goals: (payload.goals ?? []).map((goal) => ({
       ...goal,

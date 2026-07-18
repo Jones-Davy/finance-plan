@@ -24,7 +24,7 @@ export function ExpenseList({ monthKey, expenses, onUpdate, onAdd, onRemove }: P
           <h2>План расходов</h2>
           <p className="panel__subtitle">План на {formatMonthLabel(monthKey)}</p>
         </div>
-        <button type="button" className="btn btn--ghost" onClick={() => onAdd('other', true)}>
+        <button type="button" className="btn btn--ghost" onClick={() => onAdd()}>
           + Статья
         </button>
       </header>
@@ -45,7 +45,7 @@ export function ExpenseList({ monthKey, expenses, onUpdate, onAdd, onRemove }: P
         />
       )}
 
-      <button type="button" className="btn btn--secondary btn--full" onClick={() => onAdd('entertainment', false)}>
+      <button type="button" className="btn btn--secondary btn--full" onClick={() => onAdd(undefined, false)}>
         + Дополнительная трата
       </button>
     </section>

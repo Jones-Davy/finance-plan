@@ -19,7 +19,7 @@ describe('Rule503020Panel', () => {
 
   it('asks for income when it is zero', async () => {
     const user = userEvent.setup()
-    const summary = buildBudgetSummary(createBudgetState({ monthlyIncome: 0 }), '2026-07')
+    const summary = buildBudgetSummary(createBudgetState({ incomeByMonth: { '2026-07': 0 } }), '2026-07')
 
     render(<Rule503020Panel income={0} summary={summary} />)
     await user.click(screen.getByRole('button', { name: 'Показать' }))

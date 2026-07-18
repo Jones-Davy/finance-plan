@@ -1,41 +1,66 @@
+import { useMemo, useState } from 'react'
+import type { ActualTransaction, Expense, ExpenseCategory } from '../types'
+import { CATEGORY_LABELS } from '../types'
 import type { BudgetSummary } from '../utils/calculations'
 import { formatMoney } from '../utils/format'
 
 interface Props {
   summary: BudgetSummary
+  expenses: Expense[]
+  transactions: ActualTransaction[]
 }
 
-export function WeeklyBreakdown({ summary }: Props) {
+const WEEKLY_CATEGORIES = (
+  Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
+).filter(([category]) => category !== 'savings')
+
+export function WeeklyBreakdown({ summary, expenses, transactions }: Props) {
+  const [category, setCategory] = useState<ExpenseCategory>('food')
+
+  const { plannedTotal, actualTotal } = useMemo(() => {
+    const plannedTotal = expenses
+      .filter((expense) => expense.category === category)
+      .reduce((sum, expense) => sum + (expense.amount || 0), 0)
+
+    const actualTotal = transactions
+      .filter((transaction) => transaction.category === category && transaction.amount > 0)
+      .reduce((sum, transaction) => sum + transaction.amount, 0)
+
+    return { plannedTotal, actualTotal }
+  }, [category, expenses, transactions])
+
   const rows = [
     {
-      label: 'Все траты',
-      weekly: summary.weeklyBudget,
-      daily: summary.dailyBudget,
-      hint: 'полный бюджет на жизнь',
+      label: 'План',
+      weekly: plannedTotal / 4.33,
+      daily: plannedTotal / 30,
+      hint: CATEGORY_LABELS[category],
     },
     {
-      label: 'Обязательные',
-      weekly: summary.weeklyEssential,
-      daily: summary.essentialExpenses / 30,
-      hint: 'минимум для выживания',
-    },
-    {
-      label: 'Дополнительные',
-      weekly: summary.weeklyOptional,
-      daily: summary.optionalExpenses / 30,
-      hint: 'развлечения и необязательное',
+      label: 'Факт',
+      weekly: actualTotal / 4.33,
+      daily: actualTotal / 30,
+      hint: 'по выбранной категории',
     },
   ]
 
   return (
     <section className="panel card">
-      <header className="panel__header">
+      <header className="panel__header panel__header--wrap">
         <div>
           <h2>Недельный план</h2>
-          <p className="panel__subtitle">
-            Сколько можно тратить, если месяц ≈ 4,33 недели
-          </p>
+          <p className="panel__subtitle">План и факт по категории, месяц ≈ 4,33 недели</p>
         </div>
+        <label className="field weekly-breakdown__filter">
+          <span className="field__label">Категория</span>
+          <select value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)}>
+            {WEEKLY_CATEGORIES.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
       </header>
 
       <div className="weekly-grid">
@@ -57,15 +82,10 @@ export function WeeklyBreakdown({ summary }: Props) {
         ))}
       </div>
 
-      {summary.goalsMonthlyNeed > 0 && (
+      {summary.actualTotal > 0 && (
         <div className="weekly-note">
-          <span>На цели нужно откладывать</span>
-          <strong>{formatMoney(summary.goalsMonthlyNeed)} / мес</strong>
-          <span className="weekly-note__sep">·</span>
-          <span>свободно после целей</span>
-          <strong className={summary.freeAfterGoals < 0 ? 'text-danger' : 'text-success'}>
-            {formatMoney(summary.freeAfterGoals)}
-          </strong>
+          <span>Всего факт за месяц</span>
+          <strong>{formatMoney(summary.actualTotal)}</strong>
         </div>
       )}
     </section>

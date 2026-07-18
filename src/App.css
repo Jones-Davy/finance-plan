@@ -403,6 +403,34 @@
   color: var(--danger);
 }
 
+.share__room-name {
+  margin-bottom: 12px;
+}
+
+.share__room-name input {
+  width: 100%;
+  min-height: 44px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+.weekly-breakdown__filter {
+  min-width: 140px;
+}
+
+.weekly-breakdown__filter select {
+  width: 100%;
+  min-height: 40px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+}
+
 .share__option {
   display: flex;
   align-items: center;

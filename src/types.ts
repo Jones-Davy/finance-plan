@@ -7,6 +7,7 @@ export type ExpenseCategory =
   | 'entertainment'
   | 'subscriptions'
   | 'savings'
+  | 'debts'
   | 'other'
 
 export interface Expense {
@@ -37,12 +38,13 @@ export interface ActualTransaction {
 }
 
 export interface BudgetState {
-  monthlyIncome: number
+  /** @deprecated используйте incomeByMonth */
+  monthlyIncome?: number
+  incomeByMonth?: Record<string, number>
   expensesByMonth: Record<string, Expense[]>
   goals: Goal[]
   transactions: ActualTransaction[]
-  /** Активная вкладка месяца — синхронизируется в общей комнате */
-  viewMonthKey?: string
+  roomName?: string
 }
 
 export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
@@ -54,6 +56,7 @@ export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   entertainment: 'Развлечения',
   subscriptions: 'Подписки',
   savings: 'Накопления',
+  debts: 'Долги',
   other: 'Прочее',
 }
 
@@ -66,6 +69,7 @@ export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   entertainment: '#a855f7',
   subscriptions: '#64748b',
   savings: '#14b8a6',
+  debts: '#f97316',
   other: '#94a3b8',
 }
 
@@ -89,6 +93,7 @@ export const CATEGORY_BUCKET: Record<ExpenseCategory, SpendingBucket> = {
   entertainment: 'want',
   subscriptions: 'want',
   savings: 'savings',
+  debts: 'need',
   other: 'want',
 }
 

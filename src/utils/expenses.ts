@@ -60,12 +60,9 @@ export function ensureMonthExpenses(
     return expensesByMonth
   }
 
-  const sourceKey = resolveSourceMonthKey(expensesByMonth, monthKey)
-  const source = sourceKey ? expensesByMonth[sourceKey] : createDefaultExpenses()
-
   return {
     ...expensesByMonth,
-    [monthKey]: cloneExpenses(source),
+    [monthKey]: createDefaultExpenses(),
   }
 }
 

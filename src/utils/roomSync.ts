@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { BudgetState } from '../types'
 import { defaultGoalDeadline, getMonthKey } from './dates'
 import { migrateExpensesByMonth } from './expenses'
+import { migrateIncomeByMonth } from './income'
 import { getSupabaseClient, isSupabaseConfigured } from './supabase'
 
 export type CloudSyncStatus = 'idle' | 'loading' | 'saving' | 'saved' | 'error'
@@ -13,39 +14,41 @@ interface RoomRow {
   updated_at: string
 }
 
+export function stripLocalOnlyFields(state: BudgetState): BudgetState {
+  const { viewMonthKey: _, monthlyIncome: __, ...rest } = state as BudgetState & {
+    viewMonthKey?: string
+  }
+  return rest
+}
+
 export function normalizeRemoteBudgetState(
   data: unknown,
   monthKey = getMonthKey(),
 ): BudgetState {
   if (!data || typeof data !== 'object') {
     return {
-      monthlyIncome: 0,
-      viewMonthKey: monthKey,
+      incomeByMonth: {},
       expensesByMonth: migrateExpensesByMonth({}, monthKey),
       goals: [],
       transactions: [],
     }
   }
 
-  const parsed = data as Partial<BudgetState> & { monthlyIncome?: unknown; viewMonthKey?: unknown }
-  const monthlyIncome =
-    typeof parsed.monthlyIncome === 'number'
-      ? parsed.monthlyIncome
-      : Number(parsed.monthlyIncome) || 0
-  const viewMonthKey =
-    typeof parsed.viewMonthKey === 'string' && /^\d{4}-\d{2}$/.test(parsed.viewMonthKey)
-      ? parsed.viewMonthKey
-      : monthKey
+  const parsed = data as Partial<BudgetState> & {
+    monthlyIncome?: unknown
+    viewMonthKey?: unknown
+    roomName?: unknown
+  }
 
   return {
-    monthlyIncome,
-    viewMonthKey,
-    expensesByMonth: migrateExpensesByMonth(parsed, viewMonthKey),
+    incomeByMonth: migrateIncomeByMonth(parsed, monthKey),
+    expensesByMonth: migrateExpensesByMonth(parsed, monthKey),
     goals: (parsed.goals ?? []).map((goal) => ({
       ...goal,
       deadline: goal.deadline || defaultGoalDeadline(),
     })),
     transactions: parsed.transactions ?? [],
+    roomName: typeof parsed.roomName === 'string' ? parsed.roomName : undefined,
   }
 }
 
@@ -56,7 +59,7 @@ export async function createRoom(initialState: BudgetState): Promise<string> {
   const id = uuidv4()
   const { error } = await client.from('budget_rooms').insert({
     id,
-    data: initialState,
+    data: stripLocalOnlyFields(initialState),
   })
 
   if (error) throw error
@@ -90,7 +93,7 @@ export async function saveRoomState(roomId: string, state: BudgetState): Promise
   const updatedAt = new Date().toISOString()
   const { data, error } = await client
     .from('budget_rooms')
-    .update({ data: state, updated_at: updatedAt })
+    .update({ data: stripLocalOnlyFields(state), updated_at: updatedAt })
     .eq('id', roomId)
     .select('updated_at')
     .single()

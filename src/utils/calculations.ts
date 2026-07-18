@@ -8,6 +8,7 @@ import type {
 } from '../types'
 import { CATEGORY_LABELS } from '../types'
 import { formatRuMonth, getMonthKey, getTodayISO } from './dates'
+import { getIncomeForMonth } from './income'
 
 export { getMonthKey } from './dates'
 
@@ -233,15 +234,15 @@ export function calcGoalsMonthlyNeed(goals: Goal[]): number {
 export function buildBudgetSummary(state: BudgetState, monthKey = getMonthKey()): BudgetSummary {
   const monthTransactions = filterTransactionsByMonth(state.transactions, monthKey)
   const monthExpenses = state.expensesByMonth[monthKey] ?? []
+  const monthIncome = getIncomeForMonth(state, monthKey)
   const totalExpenses = sumExpenses(monthExpenses)
   const essentialExpenses = sumEssential(monthExpenses)
   const optionalExpenses = totalExpenses - essentialExpenses
-  const remaining = state.monthlyIncome - totalExpenses
-  const savingsRate =
-    state.monthlyIncome > 0 ? (remaining / state.monthlyIncome) * 100 : 0
+  const remaining = monthIncome - totalExpenses
+  const savingsRate = monthIncome > 0 ? (remaining / monthIncome) * 100 : 0
   const goalsMonthlyNeed = calcGoalsMonthlyNeed(state.goals)
   const actualTotal = sumTransactions(monthTransactions)
-  const actualRemaining = state.monthlyIncome - actualTotal
+  const actualRemaining = monthIncome - actualTotal
   const planVsActual = buildPlanVsActual(monthExpenses, monthTransactions)
 
   return {
@@ -261,7 +262,7 @@ export function buildBudgetSummary(state: BudgetState, monthKey = getMonthKey())
     actualRemaining,
     planVsActual,
     planVsActualDiff: totalExpenses - actualTotal,
-    rule503020: buildRule503020(state.monthlyIncome, monthTransactions),
+    rule503020: buildRule503020(monthIncome, monthTransactions),
   }
 }
 

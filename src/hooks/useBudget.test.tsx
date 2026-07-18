@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useBudget } from './useBudget'
 import { loadBudget } from '../utils/storage'
+import { getIncomeForMonth } from '../utils/income'
 
 describe('useBudget', () => {
   it('loads default state from localStorage', () => {
@@ -42,7 +43,7 @@ describe('useBudget', () => {
       result.current.updateExpense(expenseId, { amount: 25000 })
     })
 
-    expect(result.current.state.monthlyIncome).toBe(150000)
+    expect(getIncomeForMonth(result.current.state, result.current.monthKey)).toBe(150000)
     expect(result.current.monthExpenses[0].amount).toBe(25000)
     expect(result.current.summary.totalExpenses).toBeGreaterThan(0)
   })
@@ -119,7 +120,7 @@ describe('useBudget', () => {
     })
 
     const saved = loadBudget()
-    expect(saved.monthlyIncome).toBe(90000)
+    expect(getIncomeForMonth(saved, result.current.monthKey)).toBe(90000)
     expect(replaceState).toHaveBeenCalled()
   })
 })

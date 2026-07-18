@@ -5,7 +5,7 @@ import { createBudgetState } from '../test/fixtures'
 describe('storage utils', () => {
   it('createDefaultState returns template expenses and empty collections', () => {
     const state = createDefaultState()
-    expect(state.monthlyIncome).toBe(0)
+    expect(state.incomeByMonth?.[Object.keys(state.incomeByMonth)[0] ?? '']).toBe(0)
     expect(Object.values(state.expensesByMonth).flat().length).toBeGreaterThan(0)
     expect(state.goals).toEqual([])
     expect(state.transactions).toEqual([])
@@ -16,7 +16,7 @@ describe('storage utils', () => {
     saveBudget(state)
 
     const loaded = loadBudget()
-    expect(loaded.monthlyIncome).toBe(100000)
+    expect(loaded.incomeByMonth?.['2026-07']).toBe(100000)
     expect(loaded.transactions).toHaveLength(3)
     expect(loaded.goals).toHaveLength(1)
   })
