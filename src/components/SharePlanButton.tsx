@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BudgetState } from '../types'
+import type { SavedRoom } from '../utils/savedRooms'
 import {
   createShareUrl,
   DEFAULT_URL_SHARE_OPTIONS,
@@ -11,9 +12,14 @@ interface Props {
   roomId: string | null
   roomName: string
   cloudAvailable: boolean
+  savedRooms: SavedRoom[]
   onRoomNameChange: (name: string) => void
   onCreateRoom: (name?: string) => Promise<string>
   onCreateNewRoom: (name?: string) => Promise<string>
+  onSwitchToLocal: () => void
+  onSwitchRoom: (roomId: string) => void
+  onAddSavedRoom: (input: string) => string | null
+  onRemoveSavedRoom: (roomId: string) => void
 }
 
 export function SharePlanButton({
@@ -21,14 +27,20 @@ export function SharePlanButton({
   roomId,
   roomName,
   cloudAvailable,
+  savedRooms,
   onRoomNameChange,
   onCreateRoom,
   onCreateNewRoom,
+  onSwitchToLocal,
+  onSwitchRoom,
+  onAddSavedRoom,
+  onRemoveSavedRoom,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [includeGoals, setIncludeGoals] = useState(true)
   const [includeTransactions, setIncludeTransactions] = useState(true)
   const [draftRoomName, setDraftRoomName] = useState(roomName)
+  const [addRoomInput, setAddRoomInput] = useState('')
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -101,6 +113,16 @@ export function SharePlanButton({
     }
   }
 
+  const handleAddSavedRoom = () => {
+    setError('')
+    const id = onAddSavedRoom(addRoomInput)
+    if (!id) {
+      setError('Не удалось распознать ссылку или id комнаты')
+      return
+    }
+    setAddRoomInput('')
+  }
+
   useEffect(() => {
     if (!open) return
 
@@ -129,6 +151,59 @@ export function SharePlanButton({
               <p className="share__text">
                 Комната синхронизирует бюджет между устройствами. Активный месяц у каждого свой.
               </p>
+
+              <div className="share__rooms">
+                <span className="share__rooms-label">Мои комнаты</span>
+                <div className="share__rooms-list">
+                  <button
+                    type="button"
+                    className={`share__room-item${roomId ? '' : ' share__room-item--active'}`}
+                    onClick={onSwitchToLocal}
+                  >
+                    <span className="share__room-item-name">Локальный бюджет</span>
+                    <span className="share__room-item-meta">только на этом устройстве</span>
+                  </button>
+
+                  {savedRooms.map((room) => (
+                    <div key={room.id} className="share__room-row">
+                      <button
+                        type="button"
+                        className={`share__room-item${roomId === room.id ? ' share__room-item--active' : ''}`}
+                        onClick={() => onSwitchRoom(room.id)}
+                      >
+                        <span className="share__room-item-name">{room.name}</span>
+                        <span className="share__room-item-meta">{room.id.slice(0, 8)}…</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="share__room-remove"
+                        aria-label={`Убрать «${room.name}» из списка`}
+                        onClick={() => onRemoveSavedRoom(room.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <label className="field share__add-room">
+                  <span className="field__label">Добавить по ссылке</span>
+                  <div className="share__add-room-row">
+                    <input
+                      type="text"
+                      value={addRoomInput}
+                      placeholder="https://…/#room=…"
+                      onChange={(e) => setAddRoomInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddSavedRoom()
+                      }}
+                    />
+                    <button type="button" className="btn btn--secondary" onClick={handleAddSavedRoom}>
+                      Добавить
+                    </button>
+                  </div>
+                </label>
+              </div>
 
               <label className="field share__room-name">
                 <span className="field__label">Название комнаты</span>

@@ -10,6 +10,7 @@ import type {
 import { buildBudgetSummary } from '../utils/calculations'
 import { ensureMonthExpenses, getExpensesForMonth, collectMonthKeys } from '../utils/expenses'
 import { getIncomeForMonth } from '../utils/income'
+import { copyMonthPlan, type CopyMonthPlanOptions } from '../utils/monthPlan'
 import {
   createDefaultState,
   loadBudget,
@@ -20,6 +21,13 @@ import {
 import { readSharePlanFromUrl, sharedPlanToState, syncSharePlanToUrl } from '../utils/share'
 import { defaultGoalDeadline } from '../utils/dates'
 import {
+  defaultSavedRoomName,
+  loadSavedRooms,
+  removeSavedRoomFromList,
+  upsertSavedRoom,
+  type SavedRoom,
+} from '../utils/savedRooms'
+import {
   canUseCloudSync,
   createRoom,
   loadRoomState,
@@ -28,7 +36,12 @@ import {
   subscribeRoomState,
   type CloudSyncStatus,
 } from '../utils/roomSync'
-import { readRoomIdFromUrl, setRoomInUrl } from '../utils/roomUrl'
+import {
+  clearRoomFromUrl,
+  parseRoomIdFromInput,
+  readRoomIdFromUrl,
+  setRoomInUrl,
+} from '../utils/roomUrl'
 
 const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/
 
@@ -58,18 +71,30 @@ export function useBudget() {
   const [initialMonthKey] = useState(() => loadViewMonthKey())
   const [monthKey, setMonthKeyState] = useState(initialMonthKey)
   const [roomId, setRoomIdState] = useState<string | null>(() => readRoomIdFromUrl())
+  const [savedRooms, setSavedRooms] = useState<SavedRoom[]>(() => loadSavedRooms())
   const [state, setState] = useState(() => loadInitialState(initialMonthKey))
   const [syncStatus, setSyncStatus] = useState<CloudSyncStatus>('idle')
   const [isLegacySharedPlan] = useState(
     () => readSharePlanFromUrl() !== null && !readRoomIdFromUrl(),
   )
   const monthKeyRef = useRef(monthKey)
+  const roomIdRef = useRef(roomId)
   const roomHydratedRef = useRef(!readRoomIdFromUrl() || !canUseCloudSync())
   const skipCloudSaveRef = useRef(false)
   const lastPushedAtRef = useRef<string | null>(null)
   const cloudSyncEnabled = canUseCloudSync() && Boolean(roomId)
 
   monthKeyRef.current = monthKey
+  roomIdRef.current = roomId
+
+  const rememberRoom = useCallback((id: string, name?: string) => {
+    setSavedRooms(
+      upsertSavedRoom({
+        id,
+        name: name?.trim() || defaultSavedRoomName(id),
+      }),
+    )
+  }, [])
 
   const applyRemoteState = useCallback((data: BudgetState, updatedAt: string) => {
     skipCloudSaveRef.current = true
@@ -81,6 +106,16 @@ export function useBudget() {
     lastPushedAtRef.current = updatedAt
     roomHydratedRef.current = true
     setSyncStatus('saved')
+
+    const activeRoomId = roomIdRef.current
+    if (activeRoomId) {
+      setSavedRooms(
+        upsertSavedRoom({
+          id: activeRoomId,
+          name: data.roomName?.trim() || defaultSavedRoomName(activeRoomId),
+        }),
+      )
+    }
   }, [])
 
   const setMonthKey = useCallback((nextMonthKey: string) => {
@@ -98,8 +133,9 @@ export function useBudget() {
   }, [monthKey])
 
   useEffect(() => {
+    if (roomId) return
     saveBudget(state)
-  }, [state])
+  }, [state, roomId])
 
   useEffect(() => {
     if (cloudSyncEnabled) return
@@ -172,17 +208,77 @@ export function useBudget() {
     return () => window.clearTimeout(timer)
   }, [roomPayload, roomId, cloudSyncEnabled])
 
-  const openRoom = useCallback(async (payload: BudgetState) => {
-    const id = await createRoom(payload)
+  useEffect(() => {
+    const initialRoomId = readRoomIdFromUrl()
+    if (initialRoomId && canUseCloudSync()) {
+      rememberRoom(initialRoomId)
+    }
+  }, [rememberRoom])
+
+  const switchToRoom = useCallback(
+    (targetRoomId: string) => {
+      if (!canUseCloudSync() || roomIdRef.current === targetRoomId) return
+
+      skipCloudSaveRef.current = true
+      roomHydratedRef.current = false
+      lastPushedAtRef.current = null
+      setRoomIdState(targetRoomId)
+      setRoomInUrl(targetRoomId)
+      rememberRoom(targetRoomId)
+      setSyncStatus('loading')
+    },
+    [rememberRoom],
+  )
+
+  const switchToLocal = useCallback(() => {
+    if (roomIdRef.current === null) return
+
     skipCloudSaveRef.current = true
     roomHydratedRef.current = true
-    setRoomIdState(id)
-    setRoomInUrl(id)
-    setState(payload)
-    lastPushedAtRef.current = await saveRoomState(id, payload)
-    setSyncStatus('saved')
-    return id
+    lastPushedAtRef.current = null
+    setRoomIdState(null)
+    clearRoomFromUrl()
+
+    const localMonth = monthKeyRef.current
+    const local = loadBudget()
+    setState({
+      ...local,
+      expensesByMonth: ensureMonthExpenses(local.expensesByMonth, localMonth),
+    })
+    setSyncStatus('idle')
   }, [])
+
+  const addSavedRoom = useCallback(
+    (input: string) => {
+      const id = parseRoomIdFromInput(input)
+      if (!id || !canUseCloudSync()) return null
+
+      rememberRoom(id)
+      switchToRoom(id)
+      return id
+    },
+    [rememberRoom, switchToRoom],
+  )
+
+  const removeSavedRoom = useCallback((id: string) => {
+    setSavedRooms(removeSavedRoomFromList(id))
+  }, [])
+
+  const openRoom = useCallback(
+    async (payload: BudgetState) => {
+      const id = await createRoom(payload)
+      skipCloudSaveRef.current = true
+      roomHydratedRef.current = true
+      setRoomIdState(id)
+      setRoomInUrl(id)
+      setState(payload)
+      rememberRoom(id, payload.roomName)
+      lastPushedAtRef.current = await saveRoomState(id, payload)
+      setSyncStatus('saved')
+      return id
+    },
+    [rememberRoom],
+  )
 
   const createSharedRoom = useCallback(
     async (roomName?: string) => {
@@ -209,9 +305,23 @@ export function useBudget() {
     [openRoom],
   )
 
-  const updateRoomName = useCallback((roomName: string) => {
-    setState((current) => ({ ...current, roomName: roomName.trim() }))
-  }, [])
+  const updateRoomName = useCallback(
+    (roomName: string) => {
+      const trimmed = roomName.trim()
+      setState((current) => ({ ...current, roomName: trimmed }))
+
+      const activeRoomId = roomIdRef.current
+      if (activeRoomId) {
+        setSavedRooms(
+          upsertSavedRoom({
+            id: activeRoomId,
+            name: trimmed || defaultSavedRoomName(activeRoomId),
+          }),
+        )
+      }
+    },
+    [],
+  )
 
   const monthExpenses = useMemo(
     () => getExpensesForMonth(state.expensesByMonth, monthKey),
@@ -360,6 +470,26 @@ export function useBudget() {
     }
   }, [])
 
+  const copyMonthPlanTo = useCallback(
+    (sourceMonthKey: string, targetMonthKey: string, options?: CopyMonthPlanOptions): boolean => {
+      let copied = false
+
+      setState((current) => {
+        const next = copyMonthPlan(current, sourceMonthKey, targetMonthKey, options)
+        if (!next) return current
+        copied = true
+        return next
+      })
+
+      if (copied) {
+        setMonthKey(targetMonthKey)
+      }
+
+      return copied
+    },
+    [setMonthKey],
+  )
+
   return {
     state,
     summary,
@@ -377,6 +507,12 @@ export function useBudget() {
     createSharedRoom,
     createNewRoom,
     updateRoomName,
+    savedRooms,
+    switchToRoom,
+    switchToLocal,
+    addSavedRoom,
+    removeSavedRoom,
+    copyMonthPlanTo,
     setIncome,
     updateExpense,
     addExpense,

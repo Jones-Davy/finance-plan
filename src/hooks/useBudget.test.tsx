@@ -105,6 +105,34 @@ describe('useBudget', () => {
     expect(result.current.monthExpenses[0]?.amount).toBe(222)
   })
 
+  it('copies month plan and switches to target month', () => {
+    const { result } = renderHook(() => useBudget())
+
+    act(() => {
+      result.current.setMonthKey('2026-07')
+    })
+
+    const julyExpenseId = result.current.monthExpenses[0]?.id
+    act(() => {
+      result.current.updateExpense(julyExpenseId, { amount: 333 })
+      result.current.setIncome(120000)
+      result.current.setMonthKey('2026-08')
+    })
+
+    act(() => {
+      result.current.updateExpense(result.current.monthExpenses[0].id, { amount: 1 })
+      result.current.setIncome(5000)
+    })
+
+    act(() => {
+      result.current.copyMonthPlanTo('2026-07', '2026-08')
+    })
+
+    expect(result.current.monthKey).toBe('2026-08')
+    expect(result.current.monthExpenses[0]?.amount).toBe(333)
+    expect(getIncomeForMonth(result.current.state, '2026-08')).toBe(120000)
+  })
+
   it('persists state to localStorage and syncs URL', async () => {
     vi.useFakeTimers()
     const replaceState = vi.spyOn(window.history, 'replaceState')

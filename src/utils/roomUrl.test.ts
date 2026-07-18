@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildRoomUrl,
   isValidRoomId,
+  parseRoomIdFromInput,
   readRoomIdFromUrl,
 } from './roomUrl'
 
@@ -24,5 +25,11 @@ describe('roomUrl', () => {
   it('builds room url with hash', () => {
     const url = buildRoomUrl(roomId, { href: 'https://example.com/finance/' })
     expect(url).toBe(`https://example.com/finance/#room=${roomId}`)
+  })
+
+  it('parses room id from pasted input', () => {
+    expect(parseRoomIdFromInput(roomId)).toBe(roomId)
+    expect(parseRoomIdFromInput(`https://example.com/finance/#room=${roomId}`)).toBe(roomId)
+    expect(parseRoomIdFromInput('not-a-room')).toBeNull()
   })
 })

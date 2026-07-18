@@ -45,6 +45,12 @@ function App() {
     createSharedRoom,
     createNewRoom,
     updateRoomName,
+    savedRooms,
+    switchToRoom,
+    switchToLocal,
+    addSavedRoom,
+    removeSavedRoom,
+    copyMonthPlanTo,
     setIncome,
     updateExpense,
     addExpense,
@@ -94,9 +100,14 @@ function App() {
                 roomId={roomId}
                 roomName={roomName}
                 cloudAvailable={cloudAvailable}
+                savedRooms={savedRooms}
                 onRoomNameChange={updateRoomName}
                 onCreateRoom={createSharedRoom}
                 onCreateNewRoom={createNewRoom}
+                onSwitchToLocal={switchToLocal}
+                onSwitchRoom={switchToRoom}
+                onAddSavedRoom={addSavedRoom}
+                onRemoveSavedRoom={removeSavedRoom}
               />
               <button type="button" className="btn btn--secondary" onClick={resetBudget}>
                 Сбросить
@@ -107,7 +118,12 @@ function App() {
       </header>
 
       <div className="workbook">
-        <MonthSheetsBar monthKeys={monthKeys} value={monthKey} onChange={setMonthKey} />
+        <MonthSheetsBar
+          monthKeys={monthKeys}
+          value={monthKey}
+          onChange={setMonthKey}
+          onCopyPlan={copyMonthPlanTo}
+        />
 
         <main className="layout workbook__content">
           <SummaryCards

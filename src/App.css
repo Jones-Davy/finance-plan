@@ -75,6 +75,59 @@
   flex-shrink: 0;
 }
 
+.month-sheets__actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.month-sheets__copy {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.month-sheets__tab--utility {
+  min-width: 34px;
+  padding-inline: 10px;
+  font-size: 0.9375rem;
+  line-height: 1;
+}
+
+.month-sheets__field select {
+  width: 100%;
+  min-height: 40px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+}
+
+.month-sheets__popover-text {
+  margin: -4px 0 10px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.month-sheets__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.month-sheets__error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--danger);
+}
+
+.month-sheets__field {
+  margin-bottom: 10px;
+}
+
 .month-sheets__tab--add {
   min-width: 34px;
   padding-inline: 10px;
@@ -374,7 +427,9 @@
   top: calc(100% + 8px);
   right: 0;
   z-index: 20;
-  width: min(320px, calc(100vw - 40px));
+  width: min(360px, calc(100vw - 40px));
+  max-height: min(80vh, 640px);
+  overflow: auto;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -415,6 +470,110 @@
   border-radius: 8px;
   color: var(--text);
   padding: 10px 12px;
+}
+
+.share__rooms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share__rooms-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.share__rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.share__room-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.share__room-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.share__room-item--active {
+  border-color: rgba(99, 102, 241, 0.55);
+  background: var(--accent-soft);
+}
+
+.share__room-item-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.share__room-item-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.share__room-remove {
+  flex: 0 0 36px;
+  width: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.share__room-remove:hover {
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.share__add-room {
+  margin-top: 4px;
+}
+
+.share__add-room-row {
+  display: flex;
+  gap: 8px;
+}
+
+.share__add-room-row input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+}
+
+.share__add-room-row .btn {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding-inline: 12px;
 }
 
 .weekly-breakdown__filter {
