@@ -68,6 +68,7 @@ export function createBudgetState(overrides: Partial<BudgetState> = {}): BudgetS
         bucket: 'need',
       }),
     ],
+    viewMonthKey: '2026-07',
     ...overrides,
   }
 }

@@ -20,16 +20,27 @@ export function normalizeRemoteBudgetState(
   if (!data || typeof data !== 'object') {
     return {
       monthlyIncome: 0,
+      viewMonthKey: monthKey,
       expensesByMonth: migrateExpensesByMonth({}, monthKey),
       goals: [],
       transactions: [],
     }
   }
 
-  const parsed = data as Partial<BudgetState>
+  const parsed = data as Partial<BudgetState> & { monthlyIncome?: unknown; viewMonthKey?: unknown }
+  const monthlyIncome =
+    typeof parsed.monthlyIncome === 'number'
+      ? parsed.monthlyIncome
+      : Number(parsed.monthlyIncome) || 0
+  const viewMonthKey =
+    typeof parsed.viewMonthKey === 'string' && /^\d{4}-\d{2}$/.test(parsed.viewMonthKey)
+      ? parsed.viewMonthKey
+      : monthKey
+
   return {
-    monthlyIncome: typeof parsed.monthlyIncome === 'number' ? parsed.monthlyIncome : 0,
-    expensesByMonth: migrateExpensesByMonth(parsed, monthKey),
+    monthlyIncome,
+    viewMonthKey,
+    expensesByMonth: migrateExpensesByMonth(parsed, viewMonthKey),
     goals: (parsed.goals ?? []).map((goal) => ({
       ...goal,
       deadline: goal.deadline || defaultGoalDeadline(),

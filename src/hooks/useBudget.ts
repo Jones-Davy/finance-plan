@@ -28,28 +28,47 @@ import {
 } from '../utils/roomSync'
 import { readRoomIdFromUrl, setRoomInUrl } from '../utils/roomUrl'
 
+const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/
+
+function buildRoomPayload(state: BudgetState, monthKey: string): BudgetState {
+  return { ...state, viewMonthKey: monthKey }
+}
+
 function loadInitialState(monthKey: string): BudgetState {
-  const local = loadBudget()
   const roomId = readRoomIdFromUrl()
 
   if (roomId && canUseCloudSync()) {
     return {
-      ...local,
-      expensesByMonth: ensureMonthExpenses(local.expensesByMonth, monthKey),
+      monthlyIncome: 0,
+      expensesByMonth: ensureMonthExpenses({}, monthKey),
+      goals: [],
+      transactions: [],
+      viewMonthKey: monthKey,
     }
   }
 
+  const local = loadBudget()
   const shared = readSharePlanFromUrl()
   const base = !shared ? local : sharedPlanToState(shared, local.transactions)
 
   return {
     ...base,
     expensesByMonth: ensureMonthExpenses(base.expensesByMonth, monthKey),
+    viewMonthKey: base.viewMonthKey && MONTH_KEY_PATTERN.test(base.viewMonthKey) ? base.viewMonthKey : monthKey,
   }
 }
 
 export function useBudget() {
-  const [initialMonthKey] = useState(() => loadViewMonthKey())
+  const [initialMonthKey] = useState(() => {
+    if (readRoomIdFromUrl() && canUseCloudSync()) {
+      return loadViewMonthKey()
+    }
+    const local = loadBudget()
+    if (local.viewMonthKey && MONTH_KEY_PATTERN.test(local.viewMonthKey)) {
+      return local.viewMonthKey
+    }
+    return loadViewMonthKey()
+  })
   const [monthKey, setMonthKeyState] = useState(initialMonthKey)
   const [roomId, setRoomIdState] = useState<string | null>(() => readRoomIdFromUrl())
   const [state, setState] = useState(() => loadInitialState(initialMonthKey))
@@ -58,16 +77,40 @@ export function useBudget() {
     () => readSharePlanFromUrl() !== null && !readRoomIdFromUrl(),
   )
   const monthKeyRef = useRef(monthKey)
-  const applyingRemoteRef = useRef(false)
+  const roomHydratedRef = useRef(!readRoomIdFromUrl() || !canUseCloudSync())
+  const skipCloudSaveRef = useRef(false)
   const lastPushedAtRef = useRef<string | null>(null)
   const cloudSyncEnabled = canUseCloudSync() && Boolean(roomId)
 
   monthKeyRef.current = monthKey
 
+  const applyRemoteState = useCallback((data: BudgetState, updatedAt: string) => {
+    skipCloudSaveRef.current = true
+    const remoteMonth =
+      data.viewMonthKey && MONTH_KEY_PATTERN.test(data.viewMonthKey)
+        ? data.viewMonthKey
+        : monthKeyRef.current
+
+    if (remoteMonth !== monthKeyRef.current) {
+      setMonthKeyState(remoteMonth)
+      saveViewMonthKey(remoteMonth)
+    }
+
+    setState({
+      ...data,
+      viewMonthKey: remoteMonth,
+      expensesByMonth: ensureMonthExpenses(data.expensesByMonth, remoteMonth),
+    })
+    lastPushedAtRef.current = updatedAt
+    roomHydratedRef.current = true
+    setSyncStatus('saved')
+  }, [])
+
   const setMonthKey = useCallback((nextMonthKey: string) => {
-    if (!/^\d{4}-\d{2}$/.test(nextMonthKey)) return
+    if (!MONTH_KEY_PATTERN.test(nextMonthKey)) return
     setMonthKeyState(nextMonthKey)
     saveViewMonthKey(nextMonthKey)
+    setState((current) => ({ ...current, viewMonthKey: nextMonthKey }))
   }, [])
 
   useEffect(() => {
@@ -96,51 +139,54 @@ export function useBudget() {
     if (!roomId || !canUseCloudSync()) return
 
     let cancelled = false
+    roomHydratedRef.current = false
     setSyncStatus('loading')
 
     loadRoomState(roomId)
       .then((row) => {
-        if (cancelled || !row) {
-          if (!cancelled) setSyncStatus(row ? 'saved' : 'error')
+        if (cancelled) return
+        if (!row) {
+          roomHydratedRef.current = true
+          setSyncStatus('error')
           return
         }
 
-        applyingRemoteRef.current = true
-        setState({
-          ...row.data,
-          expensesByMonth: ensureMonthExpenses(row.data.expensesByMonth, monthKeyRef.current),
-        })
-        applyingRemoteRef.current = false
-        lastPushedAtRef.current = row.updated_at
-        setSyncStatus('saved')
+        applyRemoteState(row.data, row.updated_at)
       })
       .catch(() => {
-        if (!cancelled) setSyncStatus('error')
+        if (!cancelled) {
+          roomHydratedRef.current = true
+          setSyncStatus('error')
+        }
       })
 
     const unsubscribe = subscribeRoomState(roomId, (row) => {
       if (row.updated_at === lastPushedAtRef.current) return
-      applyingRemoteRef.current = true
-      setState({
-        ...row.data,
-        expensesByMonth: ensureMonthExpenses(row.data.expensesByMonth, monthKeyRef.current),
-      })
-      applyingRemoteRef.current = false
-      setSyncStatus('saved')
+      applyRemoteState(row.data, row.updated_at)
     })
 
     return () => {
       cancelled = true
       unsubscribe()
     }
-  }, [roomId])
+  }, [roomId, applyRemoteState])
+
+  const roomPayload = useMemo(
+    () => buildRoomPayload(state, monthKey),
+    [state, monthKey],
+  )
 
   useEffect(() => {
-    if (!cloudSyncEnabled || !roomId || applyingRemoteRef.current) return
+    if (!cloudSyncEnabled || !roomId || !roomHydratedRef.current) return
+
+    if (skipCloudSaveRef.current) {
+      skipCloudSaveRef.current = false
+      return
+    }
 
     setSyncStatus('saving')
     const timer = window.setTimeout(() => {
-      saveRoomState(roomId, state)
+      saveRoomState(roomId, roomPayload)
         .then((updatedAt) => {
           lastPushedAtRef.current = updatedAt
           setSyncStatus('saved')
@@ -151,13 +197,16 @@ export function useBudget() {
     }, 900)
 
     return () => window.clearTimeout(timer)
-  }, [state, roomId, cloudSyncEnabled])
+  }, [roomPayload, roomId, cloudSyncEnabled])
 
   const createSharedRoom = useCallback(async () => {
-    const id = await createRoom(state)
+    const payload = buildRoomPayload(state, monthKeyRef.current)
+    const id = await createRoom(payload)
+    skipCloudSaveRef.current = true
+    roomHydratedRef.current = true
     setRoomIdState(id)
     setRoomInUrl(id)
-    lastPushedAtRef.current = await saveRoomState(id, state)
+    lastPushedAtRef.current = await saveRoomState(id, payload)
     setSyncStatus('saved')
     return id
   }, [state])

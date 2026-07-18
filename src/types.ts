@@ -41,6 +41,8 @@ export interface BudgetState {
   expensesByMonth: Record<string, Expense[]>
   goals: Goal[]
   transactions: ActualTransaction[]
+  /** Активная вкладка месяца — синхронизируется в общей комнате */
+  viewMonthKey?: string
 }
 
 export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {

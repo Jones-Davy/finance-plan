@@ -15,6 +15,7 @@ export function createDefaultState(): BudgetState {
     expensesByMonth: { [monthKey]: createDefaultExpenses() },
     goals: [],
     transactions: [],
+    viewMonthKey: monthKey,
   }
 }
 
@@ -31,6 +32,10 @@ export function loadBudget(): BudgetState {
         deadline: goal.deadline || defaultGoalDeadline(),
       })),
       transactions: parsed.transactions ?? [],
+      viewMonthKey:
+        parsed.viewMonthKey && MONTH_KEY_PATTERN.test(parsed.viewMonthKey)
+          ? parsed.viewMonthKey
+          : getMonthKey(),
     }
   } catch {
     return createDefaultState()
